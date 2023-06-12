@@ -5,6 +5,9 @@ use battman::batt::Battery;
 
 fn main() {
 env_logger::init();
+
+
+
 let mut bat = match Battery::new(){
     Ok(s) => s,
     Err(e) => {
@@ -13,10 +16,41 @@ let mut bat = match Battery::new(){
         std::process::exit(1)
     }
 };
-cycle(&mut bat);
+
+let mut command = std::env::args();
+trace!("Command line : {command:?}");
+
+match command.nth(1) {
+    Some(s) => {
+        match &s as &str {
+            "test" => test(&mut bat),
+            _ => eprintln!("Invalid command."), 
+        }
+    },
+    None => cycle(&mut bat),
+}
 
 }
 
+
+pub fn test(f: &mut Battery) {
+    trace!("Sending Test Notifcation.");
+    let charge = if f.charge {
+        "Battery is charging."
+    } else {
+        "Battery isn't charging."
+    };
+    let body : String = format!("Percentage of the battery is {}%. {charge}", f.pct);
+
+    match Command::new("notify-send").arg("Battman | Test").arg(body.to_string()).spawn() {
+        Ok(_) => trace!("Notification sent."),
+        Err(e) => {
+            error!("Failed to send the notification.");
+            error!("{e}")
+        }
+    }
+
+}
 
 pub fn cycle(f: &mut Battery) {
             // Indicator if a notif has been already sent
